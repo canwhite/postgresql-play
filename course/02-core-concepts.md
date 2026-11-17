@@ -63,7 +63,7 @@
 > SELECT * FROM accounts WHERE id = 1;      -- 读到 id=1，余额 100
 > -- 此时会话 B 执行 UPDATE accounts SET balance = 200 WHERE id = 1; 并 COMMIT;
 > -- 会话 B 的写不会被会话 A 阻塞
->
+> -- 第二次再读，读到的是B提交之后的新版本
 > SELECT * FROM accounts WHERE id = 1;      -- 会话 A 在 Read Committed 下重新读，会看到 200
 > COMMIT;
 > ```
@@ -211,6 +211,17 @@
 | :--- | :--- | :--- |
 | `jsonb_ops` | 是 | `@>`、`@?`、`@@`、`?`、`?|`、`?&` |
 | `jsonb_path_ops` | 否 | `@>`、`@?`、`@@` |
+
+四个常用符号可以这样记：
+
+| 操作符 | 大白话 | 示例 |
+| :--- | :--- | :--- |
+| `@>` | 左边 JSON 是否包含右边这部分 | `attrs @> '{"color":"red"}'` |
+| `?` | 顶层是否有这个键；若左边是 JSON 数组，则是否有这个字符串元素 | `attrs ? 'color'` |
+| `@?` | 按 JSONPath 查找，只要找到一个匹配项就为真 | `attrs @? '$.sizes[*] ? (@ == "M")'` |
+| `@@` | 执行 JSONPath 的判断表达式，结果为真才匹配 | `attrs @@ '$.color == "red"'` |
+
+`?` 默认只看当前 JSON 的最外层；嵌套字段可用 `@>`，或用 `@?` / `@@` 写路径条件。
 
 > Of the two operator classes for type jsonb, `jsonb_ops` is the default. `jsonb_path_ops` supports fewer operators but offers better performance for those operators.
 > — [Research-derived · R-05](07-verification-record.md#r-05)
