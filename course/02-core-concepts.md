@@ -299,19 +299,23 @@
 > **窗口函数**——给每个客户按订单金额排名：
 >
 > ```sql
+> -- 原表什么都没变，加了个rnk列
 > SELECT customer_id, id AS order_id, amount,
 >        RANK() OVER (PARTITION BY customer_id ORDER BY amount DESC) AS rnk
 > FROM orders;
 > ```
 >
-> **递归 CTE**——沿组织树向下展开（自引用需要 `RECURSIVE`）：
+> **递归 CTE(common table expression)**——沿组织树向下展开（自引用需要 `RECURSIVE`）：
 >
 > ```sql
 > WITH RECURSIVE org AS (
+>   -- ① 锚点（anchor）：递归的起点
 >   SELECT id, manager_id, name
 >   FROM employees
 >   WHERE id = 1                       -- 锚点：起点
+>   -- UNION ALL 把锚点的结果集和递归项的结果集拼起来。这是"上下"两个分支的关系，UNION会去重
 >   UNION ALL
+>   -- ② 递归项（recursive term）：拿上一步的结果去找下一层
 >   SELECT e.id, e.manager_id, e.name
 >   FROM employees e
 >   JOIN org o ON e.manager_id = o.id  -- 递归项：引用自身输出
