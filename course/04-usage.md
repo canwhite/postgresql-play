@@ -57,6 +57,26 @@
 >
 > 注意 Red Hat 系要多跑三条命令：`postgresql-setup --initdb` 初始化数据目录，`systemctl enable` + `systemctl start` 管理服务（命令见 [R-20](07-verification-record.md#r-20)）。Debian/Ubuntu 官方页面只给出 `apt install postgresql` 一条命令（[R-19](07-verification-record.md#r-19)）；建集群与开机自启的行为该页未说明，实际以你的环境为准。
 
+**macOS / Homebrew**
+
+> **示例标签**：Illustrative（Homebrew 的 PostgreSQL 服务名随安装版本变化；以下以 `postgresql@16` 为例）
+>
+> ```sh
+> # 安装 PostgreSQL 16
+> brew install postgresql@16
+>
+> # 后台启动，并设为登录后自动启动
+> brew services start postgresql@16
+>
+> # 连接默认数据库；默认角色通常是当前 macOS 用户
+> psql postgres
+>
+> # 停止后台服务
+> brew services stop postgresql@16
+> ```
+>
+> 如果安装的是未带版本号的 `postgresql`，把上述命令中的 `postgresql@16` 换成 `postgresql`。可用 `brew services list` 确认实际服务名和运行状态。
+
 ### 端口
 
 > The TCP port the server listens on; 5432 by default. Note that the same port number is used for all IP addresses the server listens on. This parameter can only be set at server start.
