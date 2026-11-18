@@ -202,6 +202,10 @@ P.S. 这里的tsvector和tsquery，主要是分词和分词查询
 ### ❌ 不要把它当消息队列
 
 > 高频轮询、认领、更新任务状态，会产生海量死元组，让 autovacuum 彻底跟不上。Stripe 和 GitLab 都公开复盘过这类问题，最终将队列负载迁移到 Redis 或专业消息中间件。
+> 高频任务若都在 PostgreSQL 里轮询、认领、改状态，会反复 SELECT/UPDATE，产生锁竞争和死元组，拖慢业务库。迁到 Redis     
+>  后，Redis 保存“现在有哪些任务待做”，Worker 从 Redis 拿任务；处理结果再写回 PostgreSQL。不是读写分离，而是职责分离：PG
+>   管数据事实，Redis 管高频任务调度。                                                                                  
+                                      
 > — [Source-derived · S-12](07-verification-record.md#s-12)
 
 **机制**（已在 [02 章 2.3 节](02-core-concepts.md)推导过）：认领任务 = 高频 `UPDATE` 状态字段 = 每个 `UPDATE` 产生一个死元组 = 表膨胀 = autovacuum 追不上。
