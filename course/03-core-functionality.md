@@ -39,6 +39,8 @@
 > **示例标签**：Research-derived（语法与行为依据 R-04、R-05；样例数据为 Illustrative）
 >
 > ```sql
+> --两个 `SELECT 都没查表。它们在测试：一段 JSON 字符串能否转换成 PostgreSQL 的 JSON 类型。
+> -- 第一个返回json的方式是按照顺序的，第二个不按顺序                            
 > SELECT '{"bar": "baz", "balance": 7.77, "active":false}'::json;
 > -- {"bar": "baz", "balance": 7.77, "active":false}
 >
@@ -51,6 +53,7 @@
 > 重复键的处理同样来自官方文档，可以直接跑这两行对照：
 >
 > ```sql
+> -- 关于重复键，jsonb只保留最后一个值
 > SELECT '{"a":1,"a":2}'::json;    -- json 保留所有重复键（处理函数把最后一个视为生效值）
 > SELECT '{"a":1,"a":2}'::jsonb;   -- jsonb 只保留最后一个值
 > ```
@@ -58,14 +61,16 @@
 > **查询 JSONB 内部**：三种常用方式
 >
 > ```sql
-> -- 1) 包含：走 jsonb_path_ops 索引
-> SELECT id FROM products WHERE attrs @> '{"color":"red"}'::jsonb;
->
-> -- 2) 提取标量
+> -- 1) 提取标量 ->>, 相当于json取得值，然后指定为对应名
 > SELECT attrs ->> 'color' AS color, attrs -> 'sizes' AS sizes FROM products;
 >
-> -- 3) JSONPath 存在性
+>
+> -- 2) 包含：@> , 走 jsonb_path_ops 索引
+> SELECT id FROM products WHERE attrs @> '{"color":"red"}'::jsonb;
+> -- 3) @?, JSONPath 存在性, 意思：attrs 这个 JSONB 里，是否存在 sizes 数组元素等于 "L"。 
 > SELECT id FROM products WHERE attrs @? '$.sizes[*] ? (@ == "L")';
+> ---4) @@，可以用更简单的方式去判等
+> SELECT id FROM products WHERE attrs @@ '$.sizes[*] == "L"';
 > ```
 >
 > 其中 `@>`、`@?`、`@@` 是 `jsonb_path_ops` 支持的三个操作符（[R-05](07-verification-record.md#r-05)），所以上面 1 和 3 都能用上该算子类的索引。
@@ -126,7 +131,7 @@
 
 **输入**：一段文档文本。
 **输出**：一个 `tsvector`（预处理后的文档），以及查询 `tsquery` 对它的匹配结果。
-
+P.S. 这里的tsvector和tsquery，主要是分词和分词查询
 官方定义：
 
 > A data type tsvector is provided for storing preprocessed documents, along with a type tsquery for representing processed queries.
@@ -173,7 +178,7 @@
 > -- 生成列 + GIN 索引（官方推荐的写法：写入时自动维护）
 > ALTER TABLE articles ADD COLUMN tsv tsvector
 >   GENERATED ALWAYS AS (to_tsvector('english', coalesce(title,'') || ' ' || coalesce(body,''))) STORED;
->
+> -- 注意这个using
 > CREATE INDEX articles_tsv_gin ON articles USING gin (tsv);
 >
 > -- 查询
